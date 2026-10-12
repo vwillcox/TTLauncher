@@ -13,7 +13,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -90,6 +89,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import app.ttlauncher.apps.AppEntry
 import app.ttlauncher.data.CellSize
+import app.ttlauncher.data.DOCK_FOLDER_PREFIX
 import app.ttlauncher.data.DockFolder
 import app.ttlauncher.data.GRID_GAP_DP
 import app.ttlauncher.data.GRID_TIGHT_GAP_DP
@@ -202,6 +202,10 @@ fun HomeBar(
     onLaunch: (AppEntry) -> Unit,
     onAppMenu: (AppEntry) -> Unit,
     onDockFolderMenu: (DockFolder) -> Unit,
+    /** A dock entry was dragged onto another's place. Both are as [app.ttlauncher.data.LauncherState.dock] lists them. */
+    onDockMove: (from: String, to: String) -> Unit,
+    /** The same for two apps inside a dock folder, by their keys. */
+    onFolderMove: (DockFolder, from: String, to: String) -> Unit,
     onOpenDrawer: (() -> Unit)?,
     onPullDown: (() -> Unit)?,
 ) {
@@ -250,7 +254,7 @@ fun HomeBar(
                     exit = scaleOut(tween(150), targetScale = 0.15f, transformOrigin = origin) + fadeOut(tween(150)),
                 ) {
                     lastOpen?.let { entry ->
-                        DockFlyout(entry, iconSizeDp, onLaunch = { openFolder = null; onLaunch(it) }, onAppMenu = { openFolder = null; onAppMenu(it) })
+                        DockFlyout(entry, iconSizeDp, onLaunch = { openFolder = null; onLaunch(it) }, onAppMenu = { openFolder = null; onAppMenu(it) }, onMove = { from, to -> onFolderMove(entry.folder, from, to) })
                     }
                 }
                 Box(Modifier.onSizeChanged { onDockHeight(with(density) { it.height.toDp() }) }) {
@@ -258,6 +262,7 @@ fun HomeBar(
                         entries, iconSizeDp, swipeUp = onOpenDrawer != null, openFolder, onLaunch, onAppMenu,
                         onFolder = { openFolder = if (openFolder == it.id) null else it.id },
                         onFolderMenu = { openFolder = null; onDockFolderMenu(it) },
+                        onMove = onDockMove,
                     )
                 }
             }
@@ -470,7 +475,10 @@ private fun Dock(
     onAppMenu: (AppEntry) -> Unit,
     onFolder: (DockFolder) -> Unit,
     onFolderMenu: (DockFolder) -> Unit,
+    onMove: (from: String, to: String) -> Unit,
 ) {
+    // Held and dragged, an entry changes places with the one it's dragged onto. Held and let go, it opens its menu.
+    val order = remember { ReorderState() }
     WidgetFrame(WidgetStyle.GLASS, Modifier.fillMaxWidth(), label = "Dock", down = true) {
         if (entries.isEmpty()) {
             Text(
@@ -483,8 +491,16 @@ private fun Dock(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 entries.take(fits).forEach { entry ->
                     when (entry) {
-                        is DockEntry.App -> AppTile(entry.app, iconSizeDp.dp, showLabel = false, onClick = { onLaunch(entry.app) }, onLongClick = { onAppMenu(entry.app) })
-                        is DockEntry.Folder -> FolderTile(entry, iconSizeDp.dp, open = entry.folder.id == openFolder, onClick = { onFolder(entry.folder) }, onLongClick = { onFolderMenu(entry.folder) })
+                        is DockEntry.App -> key(entry.app.key) {
+                            ReorderSlot(order, entry.app.key, onMove, onHeld = { onAppMenu(entry.app) }) { lift, gesture ->
+                                AppTile(entry.app, iconSizeDp.dp, showLabel = false, onClick = { onLaunch(entry.app) }, onLongClick = null, modifier = lift, gesture = gesture)
+                            }
+                        }
+                        is DockEntry.Folder -> key(DOCK_FOLDER_PREFIX + entry.folder.id) {
+                            ReorderSlot(order, DOCK_FOLDER_PREFIX + entry.folder.id, onMove, onHeld = { onFolderMenu(entry.folder) }) { lift, gesture ->
+                                FolderTile(entry, iconSizeDp.dp, open = entry.folder.id == openFolder, onClick = { onFolder(entry.folder) }, lift, gesture)
+                            }
+                        }
                     }
                 }
             }
@@ -495,7 +511,7 @@ private fun Dock(
 /** A dock folder: a plate showing the first four apps inside it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FolderTile(entry: DockEntry.Folder, size: Dp, open: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun FolderTile(entry: DockEntry.Folder, size: Dp, open: Boolean, onClick: () -> Unit, lift: Modifier, gesture: Modifier) {
     val skin = LocalSkin.current
     val shape = RoundedCornerShape(size * 0.28f)
     val badges = LocalBadges.current
@@ -524,9 +540,9 @@ private fun FolderTile(entry: DockEntry.Folder, size: Dp, open: Boolean, onClick
         // An LCARS panel button: a flat square block with how many apps it holds up top and its name in the bottom corner.
         val block = LcarsPalette[entry.folder.id.hashCode().mod(LcarsPalette.size)]
         Box(
-            Modifier.padding(vertical = 8.dp, horizontal = 2.dp).size(size + 16.dp, size)
+            lift.padding(vertical = 8.dp, horizontal = 2.dp).size(size + 16.dp, size)
                 .drawBehind { drawRect(if (open) LcarsHighlight else lerp(block, LcarsHighlight, flash.value)) }
-                .combinedClickable(onClick = onClick, onLongClick = onLongClick, onClickLabel = "Open ${entry.folder.name}"),
+                .clickable(onClick = onClick, onClickLabel = "Open ${entry.folder.name}").then(gesture),
         ) {
             // Unread notifications inside, as a black plate cut into the block.
             if (unread > 0) Text(
@@ -546,7 +562,7 @@ private fun FolderTile(entry: DockEntry.Folder, size: Dp, open: Boolean, onClick
         return
     }
     Box(
-        Modifier.clip(RoundedCornerShape(16.dp)).combinedClickable(onClick = onClick, onLongClick = onLongClick, onClickLabel = "Open ${entry.folder.name}").padding(vertical = 8.dp, horizontal = 2.dp),
+        lift.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick, onClickLabel = "Open ${entry.folder.name}").then(gesture).padding(vertical = 8.dp, horizontal = 2.dp),
     ) {
         val plate = skin.surface.copy(alpha = 0.7f)
         Column(
@@ -574,7 +590,8 @@ private fun FolderTile(entry: DockEntry.Folder, size: Dp, open: Boolean, onClick
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DockFlyout(entry: DockEntry.Folder, iconSizeDp: Int, onLaunch: (AppEntry) -> Unit, onAppMenu: (AppEntry) -> Unit) {
+private fun DockFlyout(entry: DockEntry.Folder, iconSizeDp: Int, onLaunch: (AppEntry) -> Unit, onAppMenu: (AppEntry) -> Unit, onMove: (from: String, to: String) -> Unit) {
+    val order = remember { ReorderState() }
     WidgetFrame(WidgetStyle.SOLID, Modifier.fillMaxWidth().pointerInput(Unit) { detectTapGestures { } }, label = entry.folder.name) {
         Column(Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(entry.folder.name, style = MaterialTheme.typography.titleSmall, color = LocalSkin.current.accent, maxLines = 1)
@@ -583,7 +600,11 @@ private fun DockFlyout(entry: DockEntry.Folder, iconSizeDp: Int, onLaunch: (AppE
                 textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium,
             ) else FlowRow(horizontalArrangement = Arrangement.Center) {
                 entry.apps.forEach { app ->
-                    AppTile(app, iconSizeDp.dp, showLabel = true, onClick = { onLaunch(app) }, onLongClick = { onAppMenu(app) }, modifier = Modifier.width((iconSizeDp + 24).dp))
+                    key(app.key) {
+                        ReorderSlot(order, app.key, onMove, onHeld = { onAppMenu(app) }) { lift, gesture ->
+                            AppTile(app, iconSizeDp.dp, showLabel = true, onClick = { onLaunch(app) }, onLongClick = null, modifier = lift.width((iconSizeDp + 24).dp), gesture = gesture)
+                        }
+                    }
                 }
             }
         }

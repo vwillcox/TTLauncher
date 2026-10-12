@@ -14,9 +14,14 @@ cover screen and the inner screen, and each screen keeps its own home pages.
   account), and a Spotify player with the cover, progress, transport buttons and a button that
   shows whether the track is in Liked Songs and adds or removes it. The player reads
   Spotify's media session, which Android allows with the same notification access the badges use.
+  A health readout shows today's steps, pulse, sleep, calories and distance, and at larger sizes
+  floors, workouts, blood oxygen, water and weight too, from Health Connect, which
+  is where Samsung Health (and so a Galaxy Watch), Google Fit and Fitbit put their figures. A taller
+  one adds a heart monitor's trace, its beats spaced by your latest pulse.
   Ordinary Android widgets from other apps can be added too. On the LCARS skin their frames are
   named for the app, curve round the widget's own rounded card, and close any margin it leaves.
-- **Dock** with pinned apps and fly-out folders. It and the page dots stay put while the home pages
+- **Dock** with pinned apps and fly-out folders. Hold an icon and drag it onto another to put the
+  dock, or the apps inside a folder, in the order you like; hold and let go for its menu. It and the page dots stay put while the home pages
   swipe behind them, and the dock can be switched off.
 - **Notification badges**: an unread count on each app's icon, in the dock and the drawer. A dock
   folder shows the total for its apps, brings the ones with something unread to the front with a
@@ -60,9 +65,12 @@ Make it the home screen from Settings > Apps > Default apps > Home app.
   comes or goes. It is let go of while badges are switched off.
 - Weather is fetched the same way: only while its widget is on screen and its report is over 30
   minutes old. The Spotify widget is told of changes by Android and listens only while visible.
+- Health figures are read from Health Connect on the phone itself, while their widget is in front,
+  kept only in memory and sent nowhere.
 - The clock redraws on the system's own once-a-minute tick, and only while the launcher is visible.
-- The data cascade is the one widget that animates: about six small redraws a second, only while
-  the launcher is in front, and it can be set to stand still.
+- Three widgets animate, each by redrawing its own small canvas and only while the launcher is in
+  front: the data cascade (about six redraws a second), the health widget's heart trace (twenty)
+  and the Spotify progress bar (one). The cascade and the trace can be set to stand still.
 - Icons are drawn once at display size and cached; the app list updates from system callbacks.
 - Glass frames are translucent, not blurred. Opaque black skins switch OLED pixels off.
 
@@ -74,6 +82,7 @@ Make it the home screen from Settings > Apps > Default apps > Home app.
 | `apps/` | Installed apps, the topic sorter (`Categorizer.kt`), folders, icon rendering |
 | `feed/` | RSS/Atom parsing, topic muting, fetching |
 | `weather/` | Open-Meteo forecasts and place search |
+| `health/` | Today's figures from Health Connect |
 | `ui/` | Pages, widgets, sheets, skins, gestures |
 
 The LCARS skin uses the Antonio typeface (`res/font/antonio.ttf`), which is under the SIL Open Font

@@ -8,16 +8,28 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -225,5 +237,98 @@ fun Modifier.holdOver(onHold: () -> Unit): Modifier {
                 event.changes.forEach { it.consume() }
             } while (event.changes.any { it.pressed })
         }
+    }
+}
+
+/** Which of a row's items is being dragged to a new place, and how far it has been carried from its own. */
+@Stable
+class ReorderState {
+    var dragging by mutableStateOf<String?>(null)
+        private set
+    private var offset by mutableStateOf(Offset.Zero)
+
+    /** Where each item sits in the row, by key. */
+    private val slots = HashMap<String, Rect>()
+    private var moved = false
+    private var lastOver: String? = null
+
+    fun offsetOf(key: String): Offset = if (dragging == key) offset else Offset.Zero
+
+    fun placed(key: String, at: Rect) {
+        val before = slots.put(key, at)
+        // The item's place has just changed under it. It stays under the finger all the same.
+        if (dragging == key && before != null) offset -= at.topLeft - before.topLeft
+    }
+
+    fun gone(key: String) {
+        slots.remove(key)
+        if (dragging == key) dragging = null
+    }
+
+    fun pickUp(key: String) {
+        dragging = key
+        offset = Offset.Zero
+        moved = false
+        lastOver = null
+    }
+
+    /** Returns the key of the item whose place the dragged one should now take, if it has just come over one. */
+    fun carry(key: String, amount: Offset, slop: Float): String? {
+        offset += amount
+        if (offset.getDistance() > slop) moved = true
+        val centre = (slots[key] ?: return null).center + offset
+        val over = slots.entries.firstOrNull { it.key != key && it.value.contains(centre) }?.key
+        // Having changed places, the other item can still be under the finger. It has to be left before it can change back.
+        if (over == lastOver) return null
+        lastOver = over
+        return over
+    }
+
+    /** Returns true if it was held and let go without being carried anywhere. */
+    fun putDown(): Boolean {
+        dragging = null
+        return !moved
+    }
+}
+
+/**
+ * One item of a row or flow that is put in order by holding an item and dragging it over another.
+ * [content] is given a modifier for its outside, which carries it with the finger, and one to go on
+ * the inside of whatever it does when pressed, which is the hold and drag. Holding without dragging
+ * is [onHeld], as it was before there was any dragging. The items have to be keyed, so that the one
+ * being dragged is still the same one after it has changed places.
+ */
+@Composable
+fun ReorderSlot(state: ReorderState, key: String, onMove: (from: String, to: String) -> Unit, onHeld: () -> Unit, content: @Composable (lift: Modifier, gesture: Modifier) -> Unit) {
+    val haptics = LocalHapticFeedback.current
+    val move by rememberUpdatedState(onMove)
+    val held by rememberUpdatedState(onHeld)
+    DisposableEffect(state, key) { onDispose { state.gone(key) } }
+    Box(Modifier.zIndex(if (state.dragging == key) 1f else 0f).onGloballyPositioned { state.placed(key, Rect(it.positionInParent(), it.size.toSize())) }) {
+        content(
+            Modifier.graphicsLayer {
+                val offset = state.offsetOf(key)
+                translationX = offset.x
+                translationY = offset.y
+                // Lifted a little while it's carried.
+                if (state.dragging == key) {
+                    scaleX = 1.1f
+                    scaleY = 1.1f
+                }
+            },
+            Modifier.pointerInput(state, key) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        state.pickUp(key)
+                    },
+                    onDragEnd = { if (state.putDown()) held() },
+                    onDragCancel = { state.putDown() },
+                ) { change, amount ->
+                    change.consume()
+                    state.carry(key, amount, viewConfiguration.touchSlop)?.let { move(key, it) }
+                }
+            },
+        )
     }
 }

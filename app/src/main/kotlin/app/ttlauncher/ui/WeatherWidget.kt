@@ -134,7 +134,7 @@ fun WeatherWidget(widget: WidgetConfig, accent: Color, width: Dp, height: Dp, li
                 )
             }
             if (width >= 210.dp) Column(Modifier.width((width * 0.4f).coerceIn(92.dp, 150.dp)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
-                readouts.forEachIndexed { index, (name, value) -> Readout(name, value, index, accent, Modifier.weight(1f)) }
+                readouts.forEachIndexed { index, (name, value) -> ReadoutBlock(name, value, index, accent, Modifier.weight(1f)) }
             }
         }
         if (showDays) Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -145,7 +145,7 @@ fun WeatherWidget(widget: WidgetConfig, accent: Color, width: Dp, height: Dp, li
 
 /** One figure with its name, as an LCARS block capped on the left, or a tinted plate on other skins. */
 @Composable
-private fun Readout(name: String, value: String, index: Int, accent: Color, modifier: Modifier) {
+fun ReadoutBlock(name: String, value: String, index: Int, accent: Color, modifier: Modifier) {
     val skin = LocalSkin.current
     val ink = if (skin.lcars) Color.Black else LocalContentColor.current
     Box(

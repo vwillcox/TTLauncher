@@ -1,5 +1,6 @@
 package app.ttlauncher.data
 
+import app.ttlauncher.apps.withNewTopics
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
@@ -23,7 +24,7 @@ class Store(context: Context, scope: CoroutineScope) {
     private val key = stringPreferencesKey("state")
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
-    private val _state = MutableStateFlow(LauncherState())
+    private val _state = MutableStateFlow(LauncherState().withNewTopics())
     val state: StateFlow<LauncherState> = _state.asStateFlow()
 
     /** False until the saved state has been read, so the UI never draws the defaults first. */
@@ -33,7 +34,7 @@ class Store(context: Context, scope: CoroutineScope) {
     init {
         scope.launch {
             val saved = runCatching { dataStore.data.first()[key] }.getOrNull()
-            saved?.let { runCatching { json.decodeFromString<LauncherState>(it) }.getOrNull() }?.let { _state.value = it }
+            saved?.let { runCatching { json.decodeFromString<LauncherState>(it) }.getOrNull() }?.let { _state.value = it.withNewTopics() }
             _ready.value = true
             // Sliders change the state many times a second; only the value they settle on is written.
             _state.drop(1).collectLatest { value ->

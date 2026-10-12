@@ -83,9 +83,13 @@ fun BadgeDot(size: Dp, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AppTile(app: AppEntry, size: Dp, showLabel: Boolean, onClick: () -> Unit, onLongClick: () -> Unit, modifier: Modifier = Modifier) {
+fun AppTile(
+    app: AppEntry, size: Dp, showLabel: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)?, modifier: Modifier = Modifier,
+    /** A gesture of the tile's own, such as being held and dragged, which gets its touches ahead of the press. */
+    gesture: Modifier = Modifier,
+) {
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).combinedClickable(onClick = onClick, onLongClick = onLongClick, onClickLabel = app.label).padding(vertical = 8.dp, horizontal = 2.dp),
+        modifier.clip(RoundedCornerShape(16.dp)).combinedClickable(onClick = onClick, onLongClick = onLongClick, onClickLabel = app.label).then(gesture).padding(vertical = 8.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {

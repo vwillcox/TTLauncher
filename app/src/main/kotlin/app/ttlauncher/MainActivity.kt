@@ -85,6 +85,7 @@ import app.ttlauncher.data.WidgetConfig
 import app.ttlauncher.data.WidgetPage
 import app.ttlauncher.data.WidgetType
 import app.ttlauncher.data.layout
+import app.ttlauncher.data.moved
 import app.ttlauncher.data.moveWidget
 import app.ttlauncher.data.pageOf
 import app.ttlauncher.data.widget
@@ -122,6 +123,7 @@ import app.ttlauncher.ui.expandNotificationShade
 import app.ttlauncher.ui.rememberWallpaperActions
 import app.ttlauncher.ui.slantedPagerDrag
 import app.ttlauncher.ui.LocalWeather
+import app.ttlauncher.ui.LocalHealth
 import app.ttlauncher.ui.inPlace
 import app.ttlauncher.ui.pageTransition
 import app.ttlauncher.ui.resolveSkin
@@ -360,7 +362,7 @@ private fun Launcher(app: LauncherApp, widgetHost: WidgetHostController, homePre
         )
     }
 
-    CompositionLocalProvider(LocalSkin provides skin, LocalIcons provides app.icons, LocalIconTheme provides iconTheme, LocalMacroRunner provides runMacro, LocalWeather provides app.weather, LocalBadges provides if (state.badges) unread else emptyMap()) {
+    CompositionLocalProvider(LocalSkin provides skin, LocalIcons provides app.icons, LocalIconTheme provides iconTheme, LocalMacroRunner provides runMacro, LocalWeather provides app.weather, LocalHealth provides app.health, LocalBadges provides if (state.badges) unread else emptyMap()) {
         MaterialTheme(colorScheme = skin.colorScheme(), typography = skin.typography()) {
             Box(Modifier.fillMaxSize()) {
                 // This screen's own wallpaper, if it has one, drawn over the system's.
@@ -431,6 +433,10 @@ private fun Launcher(app: LauncherApp, widgetHost: WidgetHostController, homePre
                     onLaunch = launch,
                     onAppMenu = { sheet = Sheet.AppMenu(it) },
                     onDockFolderMenu = { sheet = Sheet.DockFolderMenu(it.id) },
+                    onDockMove = { from, to -> app.store.update { it.copy(dock = it.dock.moved(from, to)) } },
+                    onFolderMove = { folder, from, to ->
+                        app.store.update { s -> s.copy(dockFolders = s.dockFolders.map { if (it.id == folder.id) it.copy(apps = it.apps.moved(from, to)) else it }) }
+                    },
                     onOpenDrawer = if (swipeUp) ({ drawerOpen = true }) else null,
                     onPullDown = pullDown,
                 )

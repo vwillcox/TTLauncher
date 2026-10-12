@@ -3,6 +3,10 @@
 package app.ttlauncher.ui
 
 import android.appwidget.AppWidgetProviderInfo
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.text.format.DateFormat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -262,12 +266,14 @@ fun WidgetOptionsSheet(
                     val phone = when (option.key) {
                         "h24" -> phone24
                         "fahrenheit", "mph" -> weatherDefault(option.key)
+                        "miles" -> weatherDefault("mph")
                         else -> WeekFields.of(Locale.getDefault()).firstDayOfWeek == DayOfWeek.MONDAY
                     }
                     SwitchRow(option.label, widget.option(option.key) ?: phone) { on -> onChange { it.copy(options = it.options + (option.key to on)) } }
                 }
             }
             if (type == WidgetType.WEATHER) WeatherPlace(widget, onChange)
+            if (type == WidgetType.HEALTH) HealthAccessSection()
             if (type == WidgetType.MACRO) MacroButtons(widget, apps, onChange)
             if (type == WidgetType.SEARCH) OutlinedTextField(
                 value = widget.text, onValueChange = { text -> onChange { it.copy(text = text.take(40)) } },
@@ -277,6 +283,27 @@ fun WidgetOptionsSheet(
                 Choices((0 until pageCount).toList(), currentPage, { "Page ${it + 1}" }) { page -> if (page != currentPage) onMoveToPage(page) }
             }
             Text("To resize, drag the handle on the widget's corner. To move it, drag the widget.", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/** What the health widget may read: asked for here when there is more to allow, and otherwise managed in Health Connect. */
+@Composable
+private fun HealthAccessSection() {
+    val health = LocalHealth.current ?: return
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val partial by health.partial.collectAsStateWithLifecycle()
+    val ask = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { scope.launch { health.refresh(force = true) } }
+    SheetSection("Health data") {
+        Text(
+            "Steps, heart rate, sleep, calories, distance, floors, workouts, blood oxygen, water and weight, from Health Connect. " +
+                "The widget shows whichever of them it is allowed to read and your health app records. A larger widget shows more of them.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (partial) FilledTonalButton(onClick = { runCatching { ask.launch(health.permissions) } }) { Text("Allow more readings") }
+            OutlinedButton(onClick = { runCatching { context.startActivity(health.manageIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }) { Text("Open Health Connect") }
         }
     }
 }

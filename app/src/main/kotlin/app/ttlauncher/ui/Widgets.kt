@@ -261,6 +261,7 @@ private fun WidgetConfig.panelLabel(): String {
         WidgetType.MACRO -> "Macro"
         WidgetType.WEATHER -> "Atmos"
         WidgetType.MEDIA -> "Audio"
+        WidgetType.HEALTH -> "Medical"
     }
     return "$name ${(id.hashCode().mod(90) + 10)}"
 }
@@ -295,7 +296,7 @@ fun WidgetItem(widget: WidgetConfig, modifier: Modifier, host: WidgetHostControl
             WidgetType.CLOCK -> { -> context.open(Intent(AlarmClock.ACTION_SHOW_ALARMS)) }
             WidgetType.DATE, WidgetType.CALENDAR -> { -> context.open(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)) }
             WidgetType.BATTERY -> { -> context.open(Intent(Intent.ACTION_POWER_USAGE_SUMMARY)) }
-            WidgetType.CASCADE, WidgetType.MACRO, WidgetType.MEDIA -> { -> }
+            WidgetType.CASCADE, WidgetType.MACRO, WidgetType.MEDIA, WidgetType.HEALTH -> { -> }
             // Until it has a place, a press goes to where one is chosen.
             WidgetType.WEATHER -> { -> if (widget.place == null) onEdit() }
             else -> onSearch
@@ -320,6 +321,7 @@ fun WidgetItem(widget: WidgetConfig, modifier: Modifier, host: WidgetHostControl
                         WidgetType.CASCADE -> DataCascadeWidget(widget, accent)
                         WidgetType.MACRO -> MacroPadWidget(widget, accent, maxWidth, maxHeight, live = onSearch != null, onEdit)
                         WidgetType.WEATHER -> WeatherWidget(widget, accent, maxWidth, maxHeight, live = onSearch != null)
+                        WidgetType.HEALTH -> HealthWidget(widget, accent, maxWidth, maxHeight, live = onSearch != null, onEdit)
                         WidgetType.MEDIA -> MediaWidget(widget, accent, maxWidth, maxHeight, live = onSearch != null, onEdit)
                         else -> SearchWidget(widget)
                     }

@@ -8,6 +8,9 @@ import app.ttlauncher.apps.Note
 import app.ttlauncher.apps.badgeCounts
 import app.ttlauncher.apps.OTHER_FOLDER
 import app.ttlauncher.data.DefaultFolders
+import app.ttlauncher.data.FirstTopics
+import app.ttlauncher.data.LauncherState
+import app.ttlauncher.apps.withNewTopics
 import app.ttlauncher.data.Folder
 import app.ttlauncher.data.Article
 import app.ttlauncher.data.CellSize
@@ -18,6 +21,7 @@ import app.ttlauncher.data.WidgetPage
 import app.ttlauncher.data.WidgetType
 import app.ttlauncher.data.limits
 import app.ttlauncher.data.moveWidget
+import app.ttlauncher.data.moved
 import app.ttlauncher.data.packGrid
 import app.ttlauncher.data.pageOf
 import app.ttlauncher.data.widget
@@ -176,6 +180,28 @@ class LogicTest {
     }
 
     @Test
+    fun givesNewTopicsTheirFolders() {
+        val first = DefaultFolders.filter { it.topics.all(FirstTopics::contains) }
+        // A setup saved before Shopping existed, with the folders reordered and one of the user's own.
+        val mine = Folder("mine", "Mine", "star", keywords = listOf("google"))
+        val saved = LauncherState(folders = (first.reversed() + mine).map { if (it.id == "MONEY") it.copy(icon = "bag") else it }, seenTopics = FirstTopics)
+        val updated = saved.withNewTopics()
+        assertEquals(AppCategory.entries.map { it.name }.toSet(), updated.seenTopics)
+        assertEquals(AppCategory.entries.map { it.name }.toSet(), updated.folders.flatMap { it.topics }.toSet())
+        assertEquals(saved.folders.map { it.id }, updated.folders.map { it.id }.filter { id -> saved.folders.any { it.id == id } })
+        assertEquals("SHOPPING", updated.folders[updated.folders.indexOfFirst { it.id == "MONEY" } + 1].id)
+        assertEquals("money", updated.folders.first { it.id == "MONEY" }.icon)
+        assertEquals(mine, updated.folders.first { it.id == "mine" })
+        // Once offered, a topic the user took out of every folder stays out.
+        val removed = updated.copy(folders = updated.folders.filter { it.id != "SHOPPING" })
+        assertEquals(removed, removed.withNewTopics())
+        // A folder that already collects the topic keeps it.
+        val own = saved.copy(folders = saved.folders + Folder("buy", "Buy", "bag", setOf("SHOPPING")))
+        assertTrue(own.withNewTopics().folders.none { it.id == "SHOPPING" })
+        assertEquals(DefaultFolders, LauncherState().withNewTopics().folders)
+    }
+
+    @Test
     fun sizesWidgetsToTheGrid() {
         // The Fold's cover screen: 337dp of grid in four columns.
         val cover = GridSpec(columns = 4, rowDp = 72f, widthDp = 337f)
@@ -281,7 +307,22 @@ class LogicTest {
         assertEquals(AppCategory.SECURITY, category("com.onepassword.android", "1Password"))
         assertEquals(AppCategory.SECURITY, category("com.blizzard.bma", "Authenticator"))
         assertEquals(AppCategory.SECURITY, category("com.example.keys", "Password Safe"))
-        assertEquals(AppCategory.TOOLS, category("com.sec.android.app.shealth", "Samsung Health"))
+        assertEquals(AppCategory.HEALTH, category("com.sec.android.app.shealth", "Samsung Health"))
+        assertEquals(AppCategory.HEALTH, category("com.example.fit", "Home Workout"))
+        assertEquals(AppCategory.SHOPPING, category("com.amazon.mShop.android.shopping", "Amazon Shopping"))
+        assertEquals(AppCategory.SHOPPING, category("com.ebay.mobile", "eBay"))
+        assertEquals(AppCategory.SHOPPING, category("com.example.grocer", "Tesco Groceries"))
+        assertEquals(AppCategory.SHOPPING, category("com.example.app", "Corner Shop"))
+        assertEquals(AppCategory.MONEY, category("com.example.tb", "Tesco Bank"))
+        assertEquals(AppCategory.SHOPPING, category("com.example.post", "Parcel Tracker"))
+        assertEquals(AppCategory.TRAVEL, category("com.example.ride", "City Bus"))
+        assertEquals(AppCategory.FOOD, category("com.ubercab.eats", "Uber Eats"))
+        assertEquals(AppCategory.TRAVEL, category("com.ubercab", "Uber"))
+        assertEquals(AppCategory.FOOD, category("com.example.pizza", "Pizza Place"))
+        assertEquals(AppCategory.SMART_HOME, category("com.samsung.android.oneconnect", "SmartThings"))
+        assertEquals(AppCategory.SMART_HOME, category("com.example.heat", "Smart Thermostat"))
+        assertEquals(AppCategory.EDUCATION, category("com.duolingo", "Duolingo"))
+        assertEquals(AppCategory.EDUCATION, category("com.example.words", "Learn Spanish"))
         assertEquals(AppCategory.MONEY, category("uk.co.example.app", "Example Bank"))
         assertEquals(AppCategory.PHOTOS, category("com.example.snap", "Open Camera"))
         assertEquals(AppCategory.AUDIO, category("com.example.cast", "Podcasts"))
@@ -327,5 +368,15 @@ class LogicTest {
         assertEquals(1, restingPage(at = 0.05f, from = 0, speed = -300f, flick = 100f))
         assertEquals(0, restingPage(at = 0.6f, from = 0, speed = 300f, flick = 100f))
         assertEquals(1, restingPage(at = 1.9f, from = 2, speed = 300f, flick = 100f))
+    }
+
+    @Test
+    fun movesDockEntries() {
+        val dock = listOf("a", "b", "c", "d")
+        assertEquals(listOf("b", "c", "a", "d"), dock.moved("a", "c"))
+        assertEquals(listOf("d", "a", "b", "c"), dock.moved("d", "a"))
+        // Anything that isn't there leaves the order alone.
+        assertEquals(dock, dock.moved("a", "x"))
+        assertEquals(dock, dock.moved("b", "b"))
     }
 }

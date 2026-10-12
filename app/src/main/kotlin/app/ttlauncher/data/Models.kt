@@ -25,6 +25,10 @@ enum class WidgetType(val label: String, val variants: List<String>, val options
         "Weather", listOf("Readout"),
         listOf(WidgetOption("forecast", "Show the days ahead", true), WidgetOption("fahrenheit", "Fahrenheit", null), WidgetOption("mph", "Wind in mph", null)),
     ),
+    HEALTH(
+        "Health", listOf("Readout"),
+        listOf(WidgetOption("trace", "Show the heart trace", true), WidgetOption("animate", "Animate the trace", true), WidgetOption("miles", "Distance in miles", null)),
+    ),
     MEDIA("Spotify", listOf("Player"), listOf(WidgetOption("art", "Show the cover", true), WidgetOption("any", "Follow other players too", false))),
 }
 
@@ -122,6 +126,14 @@ data class DockFolder(val id: String, val name: String, val apps: List<String> =
 
 const val DOCK_FOLDER_PREFIX = "folder:"
 
+/** The list with [item] taken out and put back where [target] was, the ones between shuffling along. */
+fun <T> List<T>.moved(item: T, target: T): List<T> {
+    val from = indexOf(item)
+    val to = indexOf(target)
+    if (from < 0 || to < 0 || from == to) return this
+    return toMutableList().apply { add(to, removeAt(from)) }
+}
+
 /** A page of the app drawer. Apps land in it by topic, by word, or because the user put them there. */
 @Serializable
 data class Folder(
@@ -143,10 +155,20 @@ val DefaultFolders = listOf(
     Folder("PHOTOS", "Photos", "camera", setOf("PHOTOS")),
     Folder("WORK", "Work", "work", setOf("WORK")),
     Folder("SECURITY", "Security", "lock", setOf("SECURITY")),
-    Folder("MONEY", "Money", "bag", setOf("MONEY")),
+    Folder("MONEY", "Money", "money", setOf("MONEY")),
+    Folder("SHOPPING", "Shopping", "bag", setOf("SHOPPING")),
+    Folder("FOOD", "Food", "food", setOf("FOOD")),
     Folder("TRAVEL", "Travel", "flight", setOf("TRAVEL")),
+    Folder("HEALTH", "Health", "fitness", setOf("HEALTH")),
+    Folder("SMART_HOME", "Home", "home", setOf("SMART_HOME")),
+    Folder("EDUCATION", "Learning", "school", setOf("EDUCATION")),
     Folder("TOOLS", "Tools", "build", setOf("TOOLS")),
     Folder("SYSTEM", "System", "tune", setOf("SYSTEM")),
+)
+
+/** The topics the sorter had before [LauncherState.seenTopics] started keeping count. */
+val FirstTopics = setOf(
+    "COMMUNICATION", "INTERNET", "AUDIO", "VIDEO", "READING", "GAMES", "PHOTOS", "WORK", "SECURITY", "MONEY", "TRAVEL", "TOOLS", "SYSTEM",
 )
 
 /** Whole-word, any-case match for any of [words], singular or plural. Null when there is nothing to match. */
@@ -206,6 +228,8 @@ data class LauncherState(
     val dock: List<String> = emptyList(),
     val dockFolders: List<DockFolder> = emptyList(),
     val folders: List<Folder> = DefaultFolders,
+    /** The sorter's topics this setup has been offered, so one added later gets its folder exactly once. */
+    val seenTopics: Set<String> = FirstTopics,
     /** App key to [Folder.id], for apps the user filed by hand. */
     val categoryOverrides: Map<String, String> = emptyMap(),
     val hidden: Set<String> = emptySet(),

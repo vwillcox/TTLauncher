@@ -12,7 +12,12 @@ enum class AppCategory(val label: String) {
     WORK("Work"),
     SECURITY("Security"),
     MONEY("Money"),
+    SHOPPING("Shopping"),
+    FOOD("Food"),
     TRAVEL("Travel"),
+    HEALTH("Health"),
+    SMART_HOME("Smart home"),
+    EDUCATION("Learning"),
     TOOLS("Tools"),
     SYSTEM("System"),
 }
@@ -86,9 +91,38 @@ object Categorizer {
         )
         add(
             AppCategory.MONEY,
-            "com.amazon.mShop.android.shopping", "com.ebay.mobile", "com.paypal.android.p2pmobile",
-            "com.google.android.apps.walletnfcrel", "com.samsung.android.spay", "com.revolut.revolut",
-            "co.uk.getmondo", "com.starlingbank.android",
+            "com.paypal.android.p2pmobile", "com.google.android.apps.walletnfcrel", "com.samsung.android.spay",
+            "com.revolut.revolut", "co.uk.getmondo", "com.starlingbank.android", "com.klarna.android",
+        )
+        add(
+            AppCategory.SHOPPING,
+            "com.amazon.mShop.android.shopping", "com.ebay.mobile", "com.etsy.android", "fr.vinted",
+            "com.alibaba.aliexpresshd", "com.einnovation.temu", "com.zzkko", "com.ingka.ikea.app", "com.asos.app",
+            "com.homeretailgroup.argos.android", "com.tesco.grocery.view", "com.tesco.clubcardmobile",
+            "com.sainsburys.gol", "com.asda.android", "com.ocado.mobile.android", "de.mobile.android.app",
+            "com.gumtree.android", "com.shopify.arrive",
+        )
+        add(
+            AppCategory.FOOD,
+            "com.ubercab.eats", "com.deliveroo.orderapp", "com.justeat.app.uk", "com.dd.doordash",
+            "com.mcdonalds.app.uk", "com.starbucks.mobilecard", "com.app.tgtg", "com.hellofresh.androidapp",
+        )
+        add(
+            AppCategory.HEALTH,
+            "com.sec.android.app.shealth", "com.google.android.apps.fitness", "com.google.android.apps.healthdata",
+            "com.strava", "com.fitbit.FitbitMobile", "com.garmin.android.apps.connectmobile", "com.myfitnesspal.android",
+            "com.nhs.online.nhsonline", "com.calm.android", "com.getsomeheadspace.android",
+        )
+        add(
+            AppCategory.SMART_HOME,
+            "com.samsung.android.oneconnect", "com.google.android.apps.chromecast.app", "io.homeassistant.companion.android",
+            "com.philips.lighting.hue2", "com.amazon.dee.app", "com.tplink.iot", "com.ringapp", "com.nest.android",
+            "com.tado", "uk.co.centrica.hive",
+        )
+        add(
+            AppCategory.EDUCATION,
+            "com.duolingo", "org.khanacademy.android", "com.google.android.apps.classroom", "org.coursera.android",
+            "com.udemy.android", "com.ichi2.anki",
         )
         add(
             AppCategory.TRAVEL,
@@ -112,16 +146,21 @@ object Categorizer {
     private val keywords = listOf(
         AppCategory.SECURITY to words("authenticator|passwords?|passkeys?|2fa|otp|totp|keepass|vault|antivirus|security"),
         AppCategory.GAMES to words("games?|gaming|puzzle|arcade|chess|sudoku|solitaire|minecraft|roblox|supercell|rovio|playrix|king|zynga|nintendo|steam|playstation|xbox"),
-        AppCategory.TRAVEL to words("maps?|navigation|travel|flights?|airlines?|airways|hotels?|taxi|rail\\w*|trains?|transit|parking|booking|trip\\w*"),
-        AppCategory.MONEY to words("bank\\w*|pay|payments?|wallet|finance|money|shop\\w*|store|market\\w*|invest\\w*|trading|crypto|insurance|amazon|ebay"),
+        AppCategory.TRAVEL to words("maps?|navigation|travel|flights?|airlines?|airways|hotels?|taxis?|cabs?|minicabs?|bus|buses|rail\\w*|trains?|transit|parking|booking|trip\\w*"),
+        AppCategory.MONEY to words("bank\\w*|pay|payments?|wallet|finance|money|markets?|invest\\w*|trading|crypto|insurance|cash\\w*"),
+        AppCategory.FOOD to words("food\\w*|eats?|pizza|burgers?|restaurants?|recipes?|cook|cooking|cookbook|takeaways?|kitchen|sushi|curry|kebabs?|coffee|cafe|deliveroo|justeat|mcdonalds|dominos|starbucks|greggs|nandos|kfc"),
+        AppCategory.SHOPPING to words("shop\\w*|stores?|marketplace|supermarket|grocer\\w*|deals?|vouchers?|coupons?|fashion|clubcard|amazon|ebay|etsy|vinted|aliexpress|temu|shein|ikea|argos|tesco|asda|sainsbury\\w*|aldi|lidl|ocado|parcels?|courier"),
+        AppCategory.HEALTH to words("health\\w*|fitness|workouts?|gym|yoga|meditat\\w*|sleep|pedometer|calories?|diet|pharmacy|nhs|medical|doctor|strava|fitbit|garmin"),
+        AppCategory.SMART_HOME to words("smartthings|smart ?home|home ?assistant|thermostat|doorbell|hue|nest|alexa|tapo|kasa|tado|govee|tuya|zigbee"),
         AppCategory.PHOTOS to words("camera|gallery|photos?|photography|snapseed|lightroom|picsart"),
         AppCategory.COMMUNICATION to words("messag\\w*|messenger|chat\\w*|e?mail|sms|dialer|phone|contacts|social|telegram|signal|whatsapp|discord|mastodon"),
+        AppCategory.EDUCATION to words("learn\\w*|education\\w*|courses?|classroom|school|university|study|lessons?|tutor\\w*|flashcards?|quiz\\w*|dictionary|duolingo|babbel|memrise|coursera|udemy"),
         AppCategory.WORK to words("office|docs?|sheets?|slides|calendar|notes?|todo|tasks?|drive|meet\\w*|pdf|word|excel|powerpoint|jira|github|terminal|ssh"),
         AppCategory.AUDIO to words("music|radio|podcasts?|audio|audiobooks?|fm"),
         AppCategory.VIDEO to words("videos?|tv|stream\\w*|movies?|cinema|player|iplayer"),
         AppCategory.READING to words("books?|reader|news|comics?|magazines?|rss"),
         AppCategory.INTERNET to words("browser|web|search|vpn|wifi|downloads?|torrent|firefox|chrome"),
-        AppCategory.TOOLS to words("calculator|clock|files?|weather|flashlight|recorder|compass|translat\\w*|scanner|keyboard|remote|health|fitness"),
+        AppCategory.TOOLS to words("calculator|clock|files?|weather|flashlight|recorder|compass|translat\\w*|scanner|keyboard|remote"),
         AppCategory.SYSTEM to words("settings|setup|updates?|launcher|system|services?|device|backup"),
     )
 

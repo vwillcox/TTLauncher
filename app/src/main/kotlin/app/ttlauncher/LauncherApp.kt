@@ -6,6 +6,7 @@ import app.ttlauncher.apps.IconRepo
 import app.ttlauncher.apps.NotificationWatcher
 import app.ttlauncher.data.Store
 import app.ttlauncher.feed.FeedRepo
+import app.ttlauncher.health.HealthRepo
 import app.ttlauncher.weather.WeatherRepo
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -43,6 +44,7 @@ class LauncherApp : Application(), SingletonImageLoader.Factory {
     lateinit var apps: AppRepo
         private set
     val feed by lazy { FeedRepo(this, http, scope) }
+    val health by lazy { HealthRepo(this) }
     val weather by lazy { WeatherRepo(this, http, scope) }
 
     override fun onCreate() {

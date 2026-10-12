@@ -29,6 +29,8 @@ fun WidgetConfig.limits(): SizeLimits = when (type) {
     WidgetType.CASCADE -> SizeLimits(125f, 72f, 330f, 130f, 320f)
     WidgetType.MACRO -> SizeLimits(110f, 60f, 330f, 130f, 400f)
     WidgetType.WEATHER -> SizeLimits(150f, 72f, 330f, 150f, 320f)
+    // From a strip with the day's steps on it up to a page of its own.
+    WidgetType.HEALTH -> SizeLimits(110f, 52f, 330f, 170f, 1000f)
     WidgetType.MEDIA -> SizeLimits(180f, 72f, 330f, 150f, 320f)
 }
 
