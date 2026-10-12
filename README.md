@@ -85,7 +85,13 @@ Make it the home screen from Settings > Apps > Default apps > Home app.
 | `health/` | Today's figures from Health Connect |
 | `ui/` | Pages, widgets, sheets, skins, gestures |
 
-The LCARS skin uses the Antonio typeface (`res/font/antonio.ttf`), which is under the SIL Open Font
-License 1.1.
 
 Not built yet: backup and restore of the setup, and drag-and-drop between the drawer and the dock.
+
+## Licence
+
+Copyright 2026 Vincent Willcox. TT Launcher is under the [Apache License 2.0](LICENSE), the same
+licence as the libraries it is built on.
+
+The LCARS skin uses the Antonio typeface (`res/font/antonio.ttf`), which is under the
+[SIL Open Font License 1.1](licenses/Antonio-OFL.txt).
